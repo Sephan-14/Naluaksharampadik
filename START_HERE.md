@@ -206,7 +206,7 @@ All files are in your project:
 ---
 
 ## ✨ KEY HIGHLIGHTS
-
+the 
 ### Design Quality
 
 ✅ Modern glassmorphism aesthetic  

@@ -14,7 +14,7 @@
 2. Click **"Initialize Firebase Now"** button
 3. Wait 10-15 seconds for completion
 4. See ✅ **Success message**
-
+x
 ### Step 3: Verify in Firebase Console
 
 1. Go to https://console.firebase.google.com

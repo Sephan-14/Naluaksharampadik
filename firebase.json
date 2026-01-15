@@ -13,8 +13,26 @@
       }
     ]
   },
-  "functions": {
-    "source": "functions",
-    "runtime": "python310"
-  }
+  "functions": [
+    {
+      "codebase": "default",
+      "source": "functions",
+      "runtime": "python310"
+    },
+    {
+      "source": "naaluaksharampadik",
+      "codebase": "naaluaksharampadik",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
 }

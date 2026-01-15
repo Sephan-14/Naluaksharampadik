@@ -1,70 +1,249 @@
-# Getting Started with Create React App
+# Naalu Aksharam Padikk 🎓
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Connect. Learn. Grow Together.**
 
-## Available Scripts
+A mentorship and accountability platform connecting students for academic success. Solve the "guidance disconnect" with verified mentorship, social accountability through study logs, and smart catch-up plans.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🚀 Quick Start
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Prerequisites
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Node.js 20.19+ or 22.12+
+- Firebase account (for authentication)
+- Supabase account (for database)
 
-### `npm test`
+### 1. Setup Supabase Database
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Open the SQL Editor
+3. Copy and run the SQL from `src/supabase-setup.sql`
+4. This will create all necessary tables, indexes, and RLS policies
 
-### `npm run build`
+### 2. Configure Firebase
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable Email/Password authentication in Authentication > Sign-in method
+3. Copy your Firebase config
+4. Create a `.env` file in the `frontend` directory:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 3. Install & Run
 
-### `npm run eject`
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Visit `http://localhost:5173` to see your app! 🎉
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 📋 Database Schema
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Core Tables
 
-## Learn More
+#### `users`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Stores user profiles with authentication details
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- Firebase UID linking
+- Role (student/mentor/alumni)
+- College, department, year
+- Areas of expertise
+- Verification status
 
-### Code Splitting
+#### `mentorship_connections`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Manages mentor-mentee relationships
 
-### Analyzing the Bundle Size
+- Connection status (pending/active/completed)
+- Timestamps for tracking
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+#### `study_logs`
 
-### Making a Progressive Web App
+Daily study accountability tracking
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- Hours studied, subjects
+- Date-based logging
+- Notes and reflections
 
-### Advanced Configuration
+#### `catch_up_plans`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Personalized recovery roadmaps
 
-### Deployment
+- Time-optimized plans
+- Mentor approval system
+- Progress tracking
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+#### `community_posts`
 
-### `npm run build` fails to minify
+Social feed for sharing progress
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Content, images
+- Likes and comments
+- Engagement metrics
+
+#### `user_streaks`
+
+Gamification and motivation
+
+- Current and longest streaks
+- Last activity tracking
+
+#### `messages`
+
+Direct messaging between users
+
+- Read status tracking
+- Private communications
+
+---
+
+## 🎯 Features
+
+### ✅ Verified Mentorship Network
+
+- Connect with seniors by department and expertise
+- Search and filter mentors
+- Direct messaging
+- Rating system
+
+### ✅ Social Accountability System
+
+- Daily study logs
+- Consistency streaks
+- Community feed
+- Positive peer pressure (no toxic competition)
+
+### ✅ Smart Catch-Up Plans
+
+- Time-optimized roadmaps
+- Senior-approved plans
+- Progress tracking
+- Deadline management
+
+### ✅ User Roles
+
+- **Students**: Seek guidance, log studies, build streaks
+- **Mentors**: Help juniors, approve plans, share knowledge
+- **Alumni**: Share experience, guide career paths
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 19 + TypeScript + Vite
+- **Styling**: Tailwind CSS + Radix UI
+- **Authentication**: Firebase Auth
+- **Database**: Supabase (PostgreSQL)
+- **Routing**: React Router v6
+
+---
+
+## 📁 Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/       # Reusable UI components
+│   │   ├── ui/          # shadcn/ui components
+│   │   ├── MentorshipTab.tsx
+│   │   ├── StudyLogTab.tsx
+│   │   ├── CatchUpTab.tsx
+│   │   ├── CommunityFeedTab.tsx
+│   │   └── ProfileTab.tsx
+│   ├── config/          # Configuration files
+│   │   ├── firebase.ts  # Firebase setup
+│   │   └── supabase.ts  # Supabase client
+│   ├── contexts/        # React contexts
+│   │   └── AuthContext.tsx
+│   ├── pages/           # Page components
+│   │   ├── Landing.tsx
+│   │   ├── Login.tsx
+│   │   ├── Signup.tsx
+│   │   ├── CompleteProfile.tsx
+│   │   └── Dashboard.tsx
+│   ├── App.tsx          # Main app with routing
+│   └── main.tsx         # Entry point
+├── supabase-setup.sql   # Database schema
+└── .env.example         # Environment variables template
+```
+
+---
+
+## 🔐 Security
+
+- Row Level Security (RLS) enabled on all tables
+- Firebase authentication with secure token handling
+- Environment variables for sensitive data
+- Protected routes for authenticated users only
+
+---
+
+## 🚀 Deployment
+
+### Firebase Hosting
+
+```bash
+npm run build
+firebase deploy
+```
+
+### Vercel/Netlify
+
+1. Connect your repository
+2. Set environment variables
+3. Deploy automatically on push
+
+---
+
+## 📝 Next Steps
+
+1. **Setup Firebase**: Add your credentials to `.env`
+2. **Run Database Migration**: Execute `supabase-setup.sql`
+3. **Customize**: Update branding, colors, features
+4. **Test**: Create accounts, test workflows
+5. **Deploy**: Share with your community!
+
+---
+
+## 🤝 Contributing
+
+This is a student project aimed at solving real academic challenges. Feel free to:
+
+- Report bugs
+- Suggest features
+- Improve documentation
+- Share with your college community
+
+---
+
+## 📄 License
+
+Built with ❤️ for students, by students.
+
+---
+
+## 🆘 Support
+
+If you encounter issues:
+
+1. Check the `.env` file is configured correctly
+2. Verify Supabase tables are created
+3. Ensure Firebase authentication is enabled
+4. Check browser console for errors
+
+---
+
+**Let's build a supportive academic community together! 🎓✨**
