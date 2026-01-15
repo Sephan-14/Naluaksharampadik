@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { GraduationCap, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { GraduationCap, Mail, Lock, AlertCircle, CheckCircle, Users, Briefcase } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -11,6 +11,7 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [accountType, setAccountType] = useState<'student' | 'mentor' | 'alumni'>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
@@ -44,6 +45,10 @@ export default function Signup() {
       setError('');
       setLoading(true);
       await signup(email, password);
+      
+      // Store account type in localStorage temporarily for CompleteProfile page
+      localStorage.setItem('pendingAccountType', accountType);
+      
       navigate('/complete-profile');
     } catch (err: any) {
       console.error('Signup error:', err);
@@ -90,6 +95,62 @@ export default function Signup() {
                   <p className="text-sm text-red-200">{error}</p>
                 </div>
               )}
+
+              <div className="space-y-3">
+                <Label>I am signing up as</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAccountType('student')}
+                    className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                      accountType === 'student'
+                        ? 'border-fuchsia-400 bg-fuchsia-500/10 text-fuchsia-100'
+                        : 'border-neutral-700 hover:border-neutral-500 text-gray-100'
+                    }`}
+                    disabled={loading}
+                  >
+                    <GraduationCap className="size-6" />
+                    <span className="text-sm font-semibold">Student</span>
+                    <span className="text-xs text-gray-400">Seeking guidance</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountType('mentor')}
+                    className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                      accountType === 'mentor'
+                        ? 'border-fuchsia-400 bg-fuchsia-500/10 text-fuchsia-100'
+                        : 'border-neutral-700 hover:border-neutral-500 text-gray-100'
+                    }`}
+                    disabled={loading}
+                  >
+                    <Users className="size-6" />
+                    <span className="text-sm font-semibold">Mentor</span>
+                    <span className="text-xs text-gray-400">Guide students</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountType('alumni')}
+                    className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                      accountType === 'alumni'
+                        ? 'border-fuchsia-400 bg-fuchsia-500/10 text-fuchsia-100'
+                        : 'border-neutral-700 hover:border-neutral-500 text-gray-100'
+                    }`}
+                    disabled={loading}
+                  >
+                    <Briefcase className="size-6" />
+                    <span className="text-sm font-semibold">Alumni</span>
+                    <span className="text-xs text-gray-400">Share experience</span>
+                  </button>
+                </div>
+                {(accountType === 'mentor' || accountType === 'alumni') && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-start gap-2">
+                    <AlertCircle className="size-5 text-amber-300 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-100">
+                      Your account will require admin verification before you can start mentoring.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

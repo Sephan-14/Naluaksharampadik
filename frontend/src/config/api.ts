@@ -1,0 +1,54 @@
+// API configuration for backend endpoints
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+export const API_ENDPOINTS = {
+  HEALTH: `${API_BASE_URL}/api/health`,
+  SEMSENSE_AI: `${API_BASE_URL}/api/semsense-ai`
+};
+
+// Helper function to call SemSense AI
+export async function callSemSenseAI(semesterData: {
+  semesterNumber: number;
+  studentName?: string;
+  subjects: Array<{
+    name: string;
+    credits: number;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+  }>;
+  weeklyAvailableHours: number;
+  studentInterests?: string[];
+  academicCalendar?: Record<string, any>;
+}) {
+  try {
+    console.log('📨 Calling SemSense AI endpoint...');
+    const response = await fetch(API_ENDPOINTS.SEMSENSE_AI, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(semesterData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to call SemSense AI');
+    }
+
+    const data = await response.json();
+    console.log('✅ SemSense AI response received:', data);
+    return data;
+  } catch (error) {
+    console.error('💥 Error calling SemSense AI:', error);
+    throw error;
+  }
+}
+
+// Health check
+export async function checkBackendHealth() {
+  try {
+    const response = await fetch(API_ENDPOINTS.HEALTH);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}

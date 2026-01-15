@@ -51,17 +51,31 @@ export default function CompleteProfile() {
   const [formData, setFormData] = useState({
     fullName: '',
     role: '',
-    college: '',
     department: '',
     year: '',
     bio: '',
     areasOfExpertise: [] as string[],
+    // Mentor/Alumni specific fields
+    linkedinUrl: '',
+    githubUrl: '',
+    resumeUrl: '',
+    currentPosition: '',
+    company: '',
+    yearsOfExperience: '',
+    reasonToMentor: '',
   });
 
   // Redirect to dashboard if user already has a profile
   useEffect(() => {
     if (userProfile) {
       navigate('/dashboard', { replace: true });
+    }
+    
+    // Pre-fill role if coming from signup
+    const pendingType = localStorage.getItem('pendingAccountType');
+    if (pendingType) {
+      setFormData(prev => ({ ...prev, role: pendingType }));
+      localStorage.removeItem('pendingAccountType');
     }
   }, [userProfile, navigate]);
 
@@ -77,7 +91,7 @@ export default function CompleteProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.fullName || !formData.role || !formData.college || !formData.department) {
+    if (!formData.fullName || !formData.role || !formData.department) {
       setError('Please fill in all required fields');
       return;
     }
@@ -89,6 +103,12 @@ export default function CompleteProfile() {
 
     if (formData.areasOfExpertise.length === 0) {
       setError('Please select at least one area of expertise');
+      return;
+    }
+
+    // Additional validation for mentor/alumni
+    if ((formData.role === 'mentor' || formData.role === 'alumni') && !formData.reasonToMentor) {
+      setError('Please tell us why you want to mentor/share knowledge');
       return;
     }
 
@@ -104,12 +124,11 @@ export default function CompleteProfile() {
             email: currentUser?.email,
             full_name: formData.fullName,
             role: formData.role,
-            college: formData.college,
             department: formData.department,
             year: formData.year ? parseInt(formData.year) : null,
             bio: formData.bio || null,
             areas_of_expertise: formData.areasOfExpertise,
-            is_verified: false,
+            is_verified: formData.role === 'student', // Students are auto-verified
           }
         ]);
 
@@ -130,6 +149,24 @@ export default function CompleteProfile() {
             longest_streak: 0,
           }
         ]);
+
+        // Create verification request for mentor/alumni
+        if (formData.role === 'mentor' || formData.role === 'alumni') {
+          await supabase.from('verification_requests').insert([
+            {
+              user_id: userData.id,
+              role: formData.role,
+              linkedin_url: formData.linkedinUrl || null,
+              github_url: formData.githubUrl || null,
+              resume_url: formData.resumeUrl || null,
+              current_position: formData.currentPosition || null,
+              company: formData.company || null,
+              years_of_experience: formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : null,
+              reason_to_mentor: formData.reasonToMentor,
+              status: 'pending',
+            }
+          ]);
+        }
       }
 
       await refreshUserProfile(currentUser?.uid);
@@ -233,17 +270,6 @@ export default function CompleteProfile() {
                   Academic Details
                 </h3>
 
-                <div className="space-y-2">
-                  <Label htmlFor="college">College/University *</Label>
-                  <Input
-                    id="college"
-                    placeholder="Enter your college name"
-                    value={formData.college}
-                    onChange={(e) => setFormData({ ...formData, college: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="department">Department *</Label>
@@ -323,6 +349,98 @@ export default function CompleteProfile() {
                   rows={4}
                 />
               </div>
+
+              {/* Mentor/Alumni Additional Fields */}
+              {(formData.role === 'mentor' || formData.role === 'alumni') && (
+                <div className="space-y-4 border-t border-neutral-700 pt-6">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Briefcase className="size-5" />
+                    {formData.role === 'mentor' ? 'Mentorship' : 'Professional'} Information
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Help us verify your profile and understand your background
+                  </p>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPosition">Current Position</Label>
+                      <Input
+                        id="currentPosition"
+                        placeholder="e.g. Senior Software Engineer"
+                        value={formData.currentPosition}
+                        onChange={(e) => setFormData({ ...formData, currentPosition: e.target.value })}
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Company/Organization</Label>
+                      <Input
+                        id="company"
+                        placeholder="e.g. Google, Microsoft"
+                        value={formData.company}
+                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="yearsOfExperience">Years of Experience</Label>
+                      <Input
+                        id="yearsOfExperience"
+                        type="number"
+                        placeholder="e.g. 3"
+                        value={formData.yearsOfExperience}
+                        onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedinUrl">LinkedIn Profile (Optional)</Label>
+                      <Input
+                        id="linkedinUrl"
+                        placeholder="https://linkedin.com/in/yourprofile"
+                        value={formData.linkedinUrl}
+                        onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="githubUrl">GitHub Profile (Optional)</Label>
+                    <Input
+                      id="githubUrl"
+                      placeholder="https://github.com/yourusername"
+                      value={formData.githubUrl}
+                      onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reasonToMentor">Why do you want to {formData.role === 'mentor' ? 'mentor' : 'help'} students? *</Label>
+                    <Textarea
+                      id="reasonToMentor"
+                      placeholder="Share your motivation and what you can offer to students..."
+                      value={formData.reasonToMentor}
+                      onChange={(e) => setFormData({ ...formData, reasonToMentor: e.target.value })}
+                      disabled={loading}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <p className="text-sm text-blue-100">
+                      <strong>Note:</strong> Your profile will be reviewed by our admin team before you can start mentoring. 
+                      This typically takes 24-48 hours.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <Button 
                 type="submit" 

@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CompleteProfile from './pages/CompleteProfile';
 import Dashboard from './pages/Dashboard';
+import { SemSenseAI } from './pages/SemSenseAI';
 
 export default function App() {
   return (
@@ -31,6 +32,11 @@ export default function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/semsense-ai" element={
+            <ProtectedRoute>
+              <SemSenseAI />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" />} />

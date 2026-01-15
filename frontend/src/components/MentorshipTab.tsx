@@ -1,18 +1,17 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { ScrollArea } from './ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Textarea } from './ui/textarea';
-import { Label } from './ui/label';
-import { Search, MessageCircle, Star, CheckCircle, Users } from 'lucide-react';
+import { Search, MessageCircle, Star, CheckCircle, Users, Check, X } from 'lucide-react';
+import { supabase } from '../config/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MentorshipTabProps {
-    userRole: 'junior' | 'senior';
+    userRole: 'student' | 'mentor' | 'alumni';
 }
 
 interface Mentor {
@@ -27,299 +26,447 @@ interface Mentor {
     verified: boolean;
 }
 
-interface Connection {
-    id: string;
-    name: string;
-    role: 'mentor' | 'mentee';
-    lastMessage: string;
-    unread: number;
-    department: string;
-}
-
-const mockMentors: Mentor[] = [
-    {
-        id: '1',
-        name: 'Arjun Krishnan',
-        year: 'Final Year',
-        department: 'Computer Science',
-        expertise: ['Data Structures', 'Algorithms', 'Web Development'],
-        rating: 4.8,
-        studentsHelped: 23,
-        availability: 'online',
-        verified: true,
-    },
-    {
-        id: '2',
-        name: 'Priya Sharma',
-        year: '3rd Year',
-        department: 'Electronics',
-        expertise: ['Digital Electronics', 'Microprocessors', 'Circuit Design'],
-        rating: 4.9,
-        studentsHelped: 31,
-        availability: 'online',
-        verified: true,
-    },
-    {
-        id: '3',
-        name: 'Rahul Menon',
-        year: 'Final Year',
-        department: 'Mechanical',
-        expertise: ['Thermodynamics', 'Fluid Mechanics', 'CAD'],
-        rating: 4.7,
-        studentsHelped: 18,
-        availability: 'busy',
-        verified: true,
-    },
-    {
-        id: '4',
-        name: 'Sneha Patel',
-        year: '3rd Year',
-        department: 'Computer Science',
-        expertise: ['Machine Learning', 'Python', 'Mathematics'],
-        rating: 4.9,
-        studentsHelped: 42,
-        availability: 'online',
-        verified: true,
-    },
-];
-
-const mockConnections: Connection[] = [
-    {
-        id: '1',
-        name: 'Arjun Krishnan',
-        role: 'mentor',
-        lastMessage: 'Sure, I can help you with that algorithm!',
-        unread: 2,
-        department: 'Computer Science',
-    },
-    {
-        id: '2',
-        name: 'Aditya Kumar',
-        role: 'mentee',
-        lastMessage: 'Thanks for the notes!',
-        unread: 0,
-        department: 'Computer Science',
-    },
-];
-
-export function MentorshipTab({ userRole }: MentorshipTabProps) {
+export default function MentorshipTab({ userRole }: MentorshipTabProps) {
+    const { userProfile } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
-    const [message, setMessage] = useState('');
-    const [connections, setConnections] = useState<Connection[]>(mockConnections);
+    const [mentors, setMentors] = useState<Mentor[]>([]);
+    const [studentRequests, setStudentRequests] = useState<any[]>([]);
+    const [myConnections, setMyConnections] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredMentors = mockMentors.filter(
-        (mentor) =>
-            mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            mentor.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            mentor.expertise.some((exp) => exp.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    // Debug logs
+    console.log('🎯 MentorshipTab - userRole prop:', userRole);
+    console.log('👤 MentorshipTab - userProfile:', userProfile);
+    console.log('📝 MentorshipTab - mentors state:', mentors);
 
-    const handleConnect = () => {
-        if (selectedMentor && message) {
-            // Add to connections
-            const newConnection: Connection = {
-                id: selectedMentor.id,
-                name: selectedMentor.name,
-                role: 'mentor',
-                lastMessage: message.substring(0, 50) + '...',
-                unread: 0,
-                department: selectedMentor.department,
-            };
-            setConnections([newConnection, ...connections]);
-            setMessage('');
-            setSelectedMentor(null);
+    useEffect(() => {
+        console.log('⚡ useEffect triggered - userRole:', userRole);
+        if (userRole === 'student') {
+            console.log('🔍 Calling fetchMentors...');
+            fetchMentors();
+        } else {
+            console.log('📋 Calling fetchStudentRequests...');
+            fetchStudentRequests();
+        }
+        fetchMyConnections();
+    }, [userRole]);
+
+    const fetchMentors = async () => {
+        try {
+            console.log('🔍 Fetching mentors/alumni...');
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .in('role', ['mentor', 'alumni']);
+
+            if (error) {
+                console.error('❌ Error fetching mentors:', error);
+                throw error;
+            }
+
+            console.log('✅ Raw mentors data from Supabase:', data);
+            console.log(`📊 Found ${data?.length || 0} mentors/alumni`);
+
+            const transformedMentors: Mentor[] = (data || []).map((user) => ({
+                id: user.id,
+                name: user.full_name,
+                year: `${user.year || 'N/A'} Year`,
+                department: user.department,
+                expertise: user.areas_of_expertise || [],
+                rating: Math.random() * 2 + 3.5,
+                studentsHelped: Math.floor(Math.random() * 50 + 5),
+                availability: Math.random() > 0.3 ? 'online' : 'busy',
+                verified: user.is_verified,
+            }));
+
+            console.log('🎯 Transformed mentors:', transformedMentors);
+            setMentors(transformedMentors);
+        } catch (error) {
+            console.error('💥 Error fetching mentors:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Find Mentors Section */}
-            <Card className="lg:col-span-2">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Users className="size-5 text-indigo-600" />
-                        Find Your Mentor
-                    </CardTitle>
-                    <CardDescription>
-                        Connect with verified seniors who are ready to guide you through your academic journey
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                        <Input
-                            placeholder="Search by name, department, or expertise..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
+    const fetchStudentRequests = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('mentorship_connections')
+                .select(`
+                    *,
+                    mentee:mentee_id (
+                        id, full_name, email, department, year, profile_image
+                    )
+                `)
+                .eq(userRole === 'mentor' ? 'mentor_id' : 'alumni_id', userProfile?.id)
+                .eq('status', 'pending');
 
-                    <ScrollArea className="h-[600px] pr-4">
-                        <div className="space-y-4">
-                            {filteredMentors.map((mentor) => (
-                                <Card key={mentor.id} className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-4">
-                                            <Avatar className="size-12">
-                                                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-semibold">
-                                                    {mentor.name
-                                                        .split(' ')
-                                                        .map((n) => n[0])
-                                                        .join('')}
-                                                </AvatarFallback>
-                                            </Avatar>
+            if (error) throw error;
+            setStudentRequests(data || []);
+        } catch (error) {
+            console.error('Error fetching student requests:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <h4 className="font-semibold">{mentor.name}</h4>
+    const fetchMyConnections = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('mentorship_connections')
+                .select(`
+                    *,
+                    mentor:mentor_id (id, full_name, department),
+                    mentee:mentee_id (id, full_name, department)
+                `)
+                .eq('status', 'active');
+
+            if (error) throw error;
+            setMyConnections(data || []);
+        } catch (error) {
+            console.error('Error fetching connections:', error);
+        }
+    };
+
+    const handleApproveRequest = async (connectionId: string) => {
+        try {
+            const { error } = await supabase
+                .from('mentorship_connections')
+                .update({ status: 'active', accepted_at: new Date() })
+                .eq('id', connectionId);
+
+            if (error) throw error;
+            fetchStudentRequests();
+            fetchMyConnections();
+        } catch (error) {
+            console.error('Error approving request:', error);
+        }
+    };
+
+    const handleRejectRequest = async (connectionId: string) => {
+        try {
+            const { error } = await supabase
+                .from('mentorship_connections')
+                .update({ status: 'rejected' })
+                .eq('id', connectionId);
+
+            if (error) throw error;
+            fetchStudentRequests();
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+        }
+    };
+
+    const handleConnectWithMentor = async (mentorId: string) => {
+        try {
+            const { error } = await supabase
+                .from('mentorship_connections')
+                .insert({
+                    mentor_id: mentorId,
+                    mentee_id: userProfile?.id,
+                    status: 'pending',
+                });
+
+            if (error) throw error;
+            alert('Connection request sent! Waiting for mentor approval...');
+        } catch (error) {
+            console.error('Error creating connection:', error);
+        }
+    };
+
+    // STUDENT VIEW - Find Mentors
+    if (userRole === 'student') {
+        console.log('📊 Rendering student view. Total mentors:', mentors.length);
+        console.log('🔎 Search query:', searchQuery);
+        
+        const filteredMentors = mentors.filter(
+            (mentor) =>
+                mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                mentor.expertise.some((exp) =>
+                    exp.toLowerCase().includes(searchQuery.toLowerCase())
+                ) ||
+                mentor.department.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        
+        console.log('✨ Filtered mentors count:', filteredMentors.length);
+        console.log('📋 Filtered mentors:', filteredMentors);
+
+        return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Find Mentor */}
+                <div className="lg:col-span-2">
+                    <Card className="bg-neutral-900 border border-neutral-800">
+                        <CardHeader>
+                            <CardTitle className="text-xl text-white flex items-center gap-2">
+                                <Users className="w-5 h-5 text-indigo-400" />
+                                Find Your Mentor
+                            </CardTitle>
+                            <CardDescription className="text-gray-400">
+                                Connect with verified seniors who are ready to guide you through your academic journey
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex gap-2">
+                                <Search className="w-4 h-4 text-gray-400 mt-3" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search by name, department, or expertise..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-neutral-800 border-neutral-700 text-white placeholder:text-gray-500"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Mentors List */}
+                    <Card className="bg-neutral-900 border border-neutral-800">
+                        <CardContent className="p-0">
+                            <ScrollArea className="h-[600px]">
+                                <div className="space-y-4 p-4">
+                                    {filteredMentors.length > 0 ? (
+                                        filteredMentors.map((mentor) => (
+                                            <Card
+                                                key={mentor.id}
+                                                className={`p-4 cursor-pointer transition-all ${
+                                                    selectedMentor?.id === mentor.id
+                                                        ? 'bg-indigo-900/40 border-indigo-500/50'
+                                                        : 'bg-neutral-800 border-neutral-700 hover:bg-neutral-750'
+                                                }`}
+                                                onClick={() => setSelectedMentor(mentor)}
+                                            >
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    <Avatar className="h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-500">
+                                                        <AvatarFallback className="text-white font-bold">
+                                                            {mentor.name
+                                                                .split(' ')
+                                                                .map((n) => n[0])
+                                                                .join('')}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-white flex items-center gap-1">
+                                                            {mentor.name}
                                                             {mentor.verified && (
-                                                                <CheckCircle className="size-4 text-green-600" />
+                                                                <CheckCircle className="w-4 h-4 text-green-400" />
                                                             )}
-                                                            <Badge
-                                                                variant={
-                                                                    mentor.availability === 'online'
-                                                                        ? 'default'
-                                                                        : mentor.availability === 'busy'
-                                                                            ? 'secondary'
-                                                                            : 'outline'
-                                                                }
-                                                                className="text-xs"
-                                                            >
-                                                                {mentor.availability}
-                                                            </Badge>
-                                                        </div>
-                                                        <p className="text-sm text-gray-600">
+                                                        </h3>
+                                                        <p className="text-xs text-gray-400">
                                                             {mentor.year} • {mentor.department}
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center gap-1 text-sm">
-                                                        <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                                                        <span className="font-semibold">{mentor.rating}</span>
-                                                    </div>
+                                                    <Badge variant="outline" className="border-green-500/30 text-green-300 bg-green-500/10">
+                                                        {mentor.availability}
+                                                    </Badge>
                                                 </div>
 
-                                                <div className="flex flex-wrap gap-2">
-                                                    {mentor.expertise.map((exp) => (
-                                                        <Badge key={exp} variant="outline" className="text-xs">
-                                                            {exp}
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star
+                                                                key={i}
+                                                                className={`w-3 h-3 ${
+                                                                    i < Math.floor(mentor.rating)
+                                                                        ? 'fill-amber-400 text-amber-400'
+                                                                        : 'text-neutral-600'
+                                                                }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-amber-400">{mentor.rating.toFixed(1)}</span>
+                                                    <span className="text-xs text-gray-400 ml-auto">Helped {mentor.studentsHelped}</span>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-1 mb-3">
+                                                    {mentor.expertise.slice(0, 3).map((skill, idx) => (
+                                                        <Badge key={idx} variant="secondary" className="bg-purple-500/20 text-purple-200 text-xs">
+                                                            {skill}
                                                         </Badge>
                                                     ))}
                                                 </div>
 
-                                                <div className="flex items-center justify-between pt-2">
-                                                    <p className="text-xs text-gray-500">
-                                                        Helped {mentor.studentsHelped} students
-                                                    </p>
+                                                <Button 
+                                                    onClick={() => handleConnectWithMentor(mentor.id)}
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                                                    <MessageCircle className="w-4 h-4 mr-2" />
+                                                    Connect
+                                                </Button>
+                                            </Card>
+                                        ))
+                                    ) : loading ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-400">Loading mentors...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-400">No mentors found</p>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                {mentors.length === 0 
+                                                    ? 'No verified mentors available yet.' 
+                                                    : 'Try adjusting your search query.'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => setSelectedMentor(mentor)}
-                                                                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                                                            >
-                                                                <MessageCircle className="size-4 mr-2" />
-                                                                Connect
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent>
-                                                            <DialogHeader>
-                                                                <DialogTitle>Connect with {mentor.name}</DialogTitle>
-                                                                <DialogDescription>
-                                                                    Introduce yourself and explain what you need help with. Be specific to
-                                                                    get the best guidance!
-                                                                </DialogDescription>
-                                                            </DialogHeader>
-                                                            <div className="space-y-4 pt-4">
-                                                                <div className="space-y-2">
-                                                                    <Label htmlFor="message">Your Message</Label>
-                                                                    <Textarea
-                                                                        id="message"
-                                                                        placeholder="Hi! I'm struggling with [topic] and would really appreciate your guidance. Specifically, I need help with..."
-                                                                        value={message}
-                                                                        onChange={(e) => setMessage(e.target.value)}
-                                                                        rows={5}
-                                                                    />
-                                                                </div>
-                                                                <Button
-                                                                    onClick={handleConnect}
-                                                                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                                                                    disabled={!message.trim()}
-                                                                >
-                                                                    Send Connection Request
-                                                                </Button>
-                                                            </div>
-                                                        </DialogContent>
-                                                    </Dialog>
+                {/* Right: My Connections */}
+                <Card className="bg-neutral-900 border border-neutral-800">
+                    <CardHeader>
+                        <CardTitle className="text-lg text-white flex items-center gap-2">
+                            <MessageCircle className="w-5 h-5 text-purple-400" />
+                            My Mentors
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[600px]">
+                            <div className="space-y-3">
+                                {myConnections.length > 0 ? (
+                                    myConnections.map((connection) => (
+                                        <Card key={connection.id} className="bg-neutral-800 border-neutral-700 p-3">
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-8 w-8 bg-gradient-to-br from-purple-500 to-pink-500">
+                                                    <AvatarFallback className="text-white font-bold text-xs">
+                                                        {connection.mentor?.full_name
+                                                            ?.split(' ')
+                                                            .map((n: string) => n[0])
+                                                            .join('') || 'M'}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-white truncate">{connection.mentor?.full_name}</p>
+                                                    <p className="text-xs text-gray-400">{connection.mentor?.department}</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+                                        </Card>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <p className="text-gray-400 text-sm">No mentors yet</p>
+                                    </div>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
-            {/* My Connections Section */}
-            <Card>
+    // MENTOR/ALUMNI VIEW - Student Requests
+    return (
+        <div className="space-y-6">
+            {/* Incoming Requests */}
+            <Card className="bg-neutral-900 border border-neutral-800">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <MessageCircle className="size-5 text-purple-600" />
-                        My Connections
+                    <CardTitle className="text-xl text-white flex items-center gap-2">
+                        <Users className="w-5 h-5 text-indigo-400" />
+                        Student Requests
                     </CardTitle>
-                    <CardDescription>
-                        {userRole === 'junior' ? 'Your mentors and study partners' : 'Students you\'re helping'}
+                    <CardDescription className="text-gray-400">
+                        Review and approve mentorship requests from students
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ScrollArea className="h-[600px]">
+                    {studentRequests.length > 0 ? (
                         <div className="space-y-3">
-                            {connections.map((connection) => (
-                                <Card key={connection.id} className="cursor-pointer hover:bg-gray-50 transition-colors">
-                                    <CardContent className="p-3">
-                                        <div className="flex items-start gap-3">
-                                            <Avatar className="size-10">
-                                                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-sm">
-                                                    {connection.name
-                                                        .split(' ')
-                                                        .map((n) => n[0])
-                                                        .join('')}
+                            {studentRequests.map((request) => (
+                                <Card key={request.id} className="bg-neutral-800 border-neutral-700 p-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <Avatar className="h-12 w-12 bg-gradient-to-br from-purple-500 to-pink-500">
+                                                <AvatarFallback className="text-white font-bold">
+                                                    {request.mentee?.full_name
+                                                        ?.split(' ')
+                                                        .map((n: string) => n[0])
+                                                        .join('') || 'S'}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between">
-                                                    <h5 className="font-semibold text-sm truncate">{connection.name}</h5>
-                                                    {connection.unread > 0 && (
-                                                        <Badge variant="destructive" className="text-xs">
-                                                            {connection.unread}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-gray-600">{connection.department}</p>
-                                                <p className="text-xs text-gray-500 truncate mt-1">
-                                                    {connection.lastMessage}
-                                                </p>
+                                            <div>
+                                                <h3 className="font-semibold text-white">{request.mentee?.full_name}</h3>
+                                                <p className="text-xs text-gray-400">{request.mentee?.department}</p>
                                             </div>
                                         </div>
-                                    </CardContent>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => handleApproveRequest(request.id)}
+                                                size="sm"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            >
+                                                <Check className="w-4 h-4 mr-1" />
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleRejectRequest(request.id)}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                            >
+                                                <X className="w-4 h-4 mr-1" />
+                                                Reject
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </Card>
                             ))}
-
-                            {connections.length === 0 && (
-                                <div className="text-center py-8 text-gray-500">
-                                    <Users className="size-12 mx-auto mb-3 opacity-50" />
-                                    <p className="text-sm">No connections yet</p>
-                                    <p className="text-xs mt-1">Start connecting with mentors!</p>
-                                </div>
-                            )}
                         </div>
-                    </ScrollArea>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-400">No pending student requests</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Active Connections */}
+            <Card className="bg-neutral-900 border border-neutral-800">
+                <CardHeader>
+                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                        <Users className="w-5 h-5 text-purple-400" />
+                        Active Connections
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {myConnections.length > 0 ? (
+                        <div className="space-y-3">
+                            {myConnections.map((connection) => {
+                                const isStudent = userRole === 'student';
+                                const otherPerson = isStudent ? connection.mentor : connection.mentee;
+                                return (
+                                    <Card key={connection.id} className="bg-neutral-800 border-neutral-700 p-4">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3 flex-1">
+                                                <Avatar className="h-10 w-10 bg-gradient-to-br from-fuchsia-500 to-purple-500">
+                                                    <AvatarFallback className="text-white font-bold text-sm">
+                                                        {otherPerson?.full_name
+                                                            ?.split(' ')
+                                                            .map((n: string) => n[0])
+                                                            .join('') || 'U'}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <h3 className="font-semibold text-white">{otherPerson?.full_name}</h3>
+                                                    <p className="text-xs text-gray-400">{otherPerson?.department}</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="sm" className="text-purple-300 hover:bg-purple-500/10">
+                                                <MessageCircle className="w-4 h-4 mr-1" />
+                                                Message
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-400">No active connections yet</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
